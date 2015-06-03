@@ -16,12 +16,8 @@
 
 package io.realm.internal;
 
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 class Context {
 
@@ -31,13 +27,6 @@ class Context {
     // whose disposal need to be handed over from the garbage 
     // collection thread to the users thread.
 
-    // Store the row references. Without this objects would be garbage collected immediately so don't remove this! ;)
-    final Set<Reference<?>> rowReferences = new HashSet<Reference<?>>();
-
-    // This is the actual reference queue in which the garbage collector will insert the row instances ready to be
-    // cleaned up
-    final ReferenceQueue<NativeObject> rowReferenceQueue = new ReferenceQueue<NativeObject>();
-
     private List<Long> abandonedTables = new ArrayList<Long>();
     private List<Long> abandonedTableViews = new ArrayList<Long>();
     private List<Long> abandonedQueries = new ArrayList<Long>();
@@ -46,26 +35,23 @@ class Context {
 
     public void executeDelayedDisposal() {
         synchronized (this) {
-            for (long nativePointer: abandonedTables) {
+            for (int i = 0; i < abandonedTables.size(); i++) {
+                long nativePointer = abandonedTables.get(i);
                 Table.nativeClose(nativePointer);
             }
             abandonedTables.clear();
 
-            for (long nativePointer: abandonedTableViews) {
+            for (int i = 0; i < abandonedTableViews.size(); i++) {
+                long nativePointer = abandonedTableViews.get(i);
                 TableView.nativeClose(nativePointer);
             }
             abandonedTableViews.clear();
 
-            for (long nativePointer: abandonedQueries) {
+            for (int i = 0; i < abandonedQueries.size(); i++) {
+                long nativePointer = abandonedQueries.get(i);
                 TableQuery.nativeClose(nativePointer);
             }
             abandonedQueries.clear();
-
-            NativeObjectReference reference;
-            while ((reference = (NativeObjectReference) rowReferenceQueue.poll()) != null) {
-                Row.nativeClose(reference.nativePointer);
-                rowReferences.remove(reference);
-            }
         }
     }
 

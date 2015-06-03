@@ -32,16 +32,14 @@ public class Row extends NativeObject {
     public static Row get(Context context, Table table, long index) {
         long nativeRowPointer = table.nativeGetRowPtr(table.nativePtr, index);
         Row row = new Row(context, table, nativeRowPointer);
-        context.rowReferences.add(new NativeObjectReference(row, context.rowReferenceQueue));
-        context.executeDelayedDisposal();
+        FinalizerRunnable.references.put(new NativeObjectReference(row, FinalizerRunnable.referenceQueue), true);
         return row;
     }
 
     public static Row get(Context context, LinkView linkView, long index) {
         long nativeRowPointer = linkView.nativeGetRow(linkView.nativeLinkViewPtr, index);
         Row row = new Row(context, linkView.parent.getLinkTarget(linkView.columnIndexInParent), nativeRowPointer);
-        context.rowReferences.add(new NativeObjectReference(row, context.rowReferenceQueue));
-        context.executeDelayedDisposal();
+        FinalizerRunnable.references.put(new NativeObjectReference(row, FinalizerRunnable.referenceQueue), true);
         return row;
     }
 
@@ -269,7 +267,7 @@ public class Row extends NativeObject {
 
     protected native void nativeNullifyLink(long nativeRowPtr, long columnIndex);
 
-    protected static native void nativeClose(long nativeRowPtr);
+    static native void nativeClose(long nativeRowPtr);
 
     /**
      * Checks if the row is still valid.
